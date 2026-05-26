@@ -1,5 +1,31 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
+import fs from 'fs';
+import path from 'path';
+
+// 本地開發時若金鑰不存在，嘗試手動從根目錄的 .env.local 載入 (相容 vercel dev)
+if (!process.env.GEMINI_API_KEY || !process.env.NVIDIA_API_KEY) {
+  try {
+    const envPath = path.join(process.cwd(), '.env.local');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf-8');
+      content.split(/\r?\n/).forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) return;
+        const parts = trimmed.split('=');
+        if (parts.length >= 2) {
+          const key = parts[0].trim();
+          const value = parts.slice(1).join('=').trim().replace(/^["']|["']$/g, '');
+          if (key) {
+            process.env[key] = value;
+          }
+        }
+      });
+    }
+  } catch (e) {
+    console.error('無法讀取本地 .env.local 檔案:', e);
+  }
+}
 
 // 預設系統提示詞（客服問答規則）
 const DEFAULT_SYSTEM_INSTRUCTION = `你是一位專業、親切、有耐心的虛擬客服助理。
