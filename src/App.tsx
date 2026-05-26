@@ -13,7 +13,8 @@ import {
   X,
   Menu,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Cpu
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -30,6 +31,10 @@ export default function App() {
   const [isSettingsExpanded, setIsSettingsExpanded] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // AI 服務提供商狀態
+  const [selectedProvider, setSelectedProvider] = useState<"gemini" | "nvidia">("gemini");
+  const [isProviderDropdownOpen, setIsProviderDropdownOpen] = useState<boolean>(false);
   
   // 用於行動端控制 Sidebar 展開
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
@@ -116,18 +121,14 @@ export default function App() {
     setIsLoading(true);
 
     try {
-      const apiMessages = updatedMessages.map((msg) => ({
-        role: msg.role === "user" ? "user" : "model",
-        parts: [{ text: msg.text }],
-      }));
-
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: apiMessages,
+          provider: selectedProvider,
+          messages: updatedMessages,
           customSystemInstruction: customInstruction,
         }),
       });
@@ -342,9 +343,85 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="hidden sm:inline-flex text-[10px] text-slate-400 font-mono bg-slate-100 border border-slate-200/50 px-2 py-1 rounded-md">
-              Gemini 3.5 Flash
-            </span>
+            <div className="relative">
+              <button
+                onClick={() => setIsProviderDropdownOpen(!isProviderDropdownOpen)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-all cursor-pointer shadow-sm select-none"
+              >
+                <div className={`h-1.5 w-1.5 rounded-full ${selectedProvider === "gemini" ? "bg-indigo-500 animate-pulse" : "bg-emerald-500 animate-pulse"}`} />
+                <span className="hidden sm:inline">{selectedProvider === "gemini" ? "Google Gemini" : "NVIDIA Nemotron"}</span>
+                <span className="inline sm:hidden">{selectedProvider === "gemini" ? "Gemini" : "NVIDIA"}</span>
+                <ChevronDown size={13} className={`text-slate-400 transition-transform duration-200 ${isProviderDropdownOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              <AnimatePresence>
+                {isProviderDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setIsProviderDropdownOpen(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-64 z-50 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl ring-1 ring-slate-900/5"
+                    >
+                      <div className="px-2.5 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        選擇 AI 服務提供商
+                      </div>
+                      
+                      <button
+                        onClick={() => {
+                          setSelectedProvider("gemini");
+                          setIsProviderDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-start gap-3 p-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                          selectedProvider === "gemini"
+                            ? "bg-indigo-50/60 text-indigo-700 font-medium"
+                            : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        <div className={`p-1.5 rounded-lg shrink-0 ${selectedProvider === "gemini" ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-500"}`}>
+                          <Sparkles size={14} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-xs flex items-center justify-between">
+                            <span>Google Gemini</span>
+                            {selectedProvider === "gemini" && <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />}
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-0.5 truncate font-mono">gemini-2.5-flash-lite</p>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setSelectedProvider("nvidia");
+                          setIsProviderDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-start gap-3 p-2.5 rounded-xl text-left transition-all cursor-pointer mt-1 ${
+                          selectedProvider === "nvidia"
+                            ? "bg-emerald-50/60 text-emerald-700 font-medium"
+                            : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        <div className={`p-1.5 rounded-lg shrink-0 ${selectedProvider === "nvidia" ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>
+                          <Cpu size={14} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-xs flex items-center justify-between">
+                            <span>NVIDIA Nemotron</span>
+                            {selectedProvider === "nvidia" && <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />}
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-0.5 truncate font-mono">nemotron-mini-4b</p>
+                        </div>
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </header>
 
@@ -356,7 +433,7 @@ export default function App() {
               <span className="font-bold block mb-0.5">系統提醒：</span>
               <p className="leading-relaxed text-[11px]">{error}</p>
               <p className="mt-1 text-rose-500/80 text-[10px]">
-                請至 Settings &gt; Secrets 設定內填入 `GEMINI_API_KEY` 以完成 API 解析。
+                請確認您已在 Vercel 後台或本地環境中設定 `{selectedProvider === "gemini" ? "GEMINI_API_KEY" : "NVIDIA_API_KEY"}` 環境變數以載入 API 金鑰。
               </p>
             </div>
           </div>
